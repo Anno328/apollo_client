@@ -3,7 +3,7 @@ import {
   useQuery,
   gql
 } from "@apollo/client";
-import useState from 'react';
+import {useState,useEffect} from 'react';
 
 const EXCHANGE_RATES = gql`
 query GetExchangeRates($currency: String!) {
@@ -16,7 +16,6 @@ query GetExchangeRates($currency: String!) {
 `;
 
 let rateData = null;
-let rate = 'USD';
 let refetcha = null;
 
 function useExchangeRates(selectedCurrency) {
@@ -29,7 +28,7 @@ function useExchangeRates(selectedCurrency) {
   if (loading) return 'loading';
   if (error) return 'error';
 
-  console.log(data.rates);
+  console.log("useExchangeRates run");
   refetcha = refetch;
 
   return data.rates
@@ -53,33 +52,37 @@ function ShowRateData(){
   ));
 }
 
-function onChangeCurrency(e){
-  rate = e.target.value;
-  refetcha();
-}
+function useSelectCurrency() {
+  const [currency, setCurrency] = useState("USD");
 
-function SelectCurrency() {
-  const [currency, setCurrency] = useState("USD")
-
-  return(
-    
-      <div>
-          <select name="currency" onChange={(e)=>onChangeCurrency(e)}>
-              <option value='USD'>USD</option>
-              <option value='AOA'>AOA</option>
-              <option value='JPY'>JPY</option>
-          </select>
-      </div>
-  );
+  return{
+    currency,
+    onChangeCurrency: e=>{
+      setCurrency(e.target.value)
+    }
+  }
 }
 
 function App() {
-  rateData = useExchangeRates(rate);
+  const {currency,onChangeCurrency} = useSelectCurrency();
+  rateData = useExchangeRates(currency);
+
+  useEffect(() => {
+    if(refetcha){
+      refetcha();
+    }
+  }, [currency])
 
   return (
     <div className="App">
       <div>
-        <SelectCurrency/>
+        <div>
+            <select name="currency" onChange={(e)=>onChangeCurrency(e)}>
+                <option value='USD'>USD</option>
+                <option value='AOA'>AOA</option>
+                <option value='JPY'>JPY</option>
+            </select>
+        </div>
         <ShowRateData />
       </div>
     </div>
