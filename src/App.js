@@ -3,23 +3,27 @@ import {
   useQuery,
   gql
 } from "@apollo/client";
-import {useState,useEffect} from 'react';
+import React, { useState,useEffect } from 'react';
 
-function useExchangeRates(selectedCurrency) {
-  const EXCHANGE_RATES = gql`
-  query GetExchangeRates($currency: String!) {
-    rates(currency: $currency) {
-      currency
-      rate
+function useExchangeRates() {
+  const GET_SHIPS = gql`
+  query GetShips($name: String!) {
+    ships(find: {name: $name}) {
       name
+      image
+      id
     }
   }
   `;
 
-  const currency = selectedCurrency;
+  const shipName = '';
 
-  const { loading, error, data, refetch } = useQuery(EXCHANGE_RATES ,{
-    variables: {currency},
+  const { loading, error, data, refetch } = useQuery(GET_SHIPS ,{
+    variables: {name: shipName},
+  });
+
+  console.log({
+    variables: {name: shipName},
   });
 
   if (loading) return 'loading';
@@ -28,63 +32,71 @@ function useExchangeRates(selectedCurrency) {
   console.log("useExchangeRates run");
 
   return {
-    rateData:data.rates,
+    shipData:data.ships,
     refetch
   }
 }
 
-function ShowRateData(props){
-    console.log(props.rateData);
-
-    if(!props.rateData){
+function ShowshipData(props){
+    if(!props.shipData){
       return(<p>no data</p>);
-    }else if (props.rateData === 'loading'){
+    }else if (props.shipData === 'loading'){
       return(<p>loading</p>);
-    }else if(props.rateData === 'error'){
-      return(<p>error</p>);
+    }else if(props.shipData === 'error'){
+      return(<p>loading</p>);
     }
   
-    return props.rateData.map(({ currency, rate }) => (
-      <div key={currency}>
-        <p>
-          {currency}: {rate}
-        </p>
+    return props.shipData.map(({ name, image }) => (
+      <div>
+        <p>{name}</p>
+        <img src={image} alt=''/>
       </div>
     ));
 }
 
-function useSelectCurrency() {
-  const [currency, setCurrency] = useState("USD");
+function useSearchShipData(){
+  const [ship, setShip] = useState('')
 
-  return{
-    currency,
-    onChangeCurrency: e=>{
-      setCurrency(e.target.value)
+  return {
+    ship,
+    onChangeShip: (e)=>{
+      setShip(e.target.value);
     }
+  };
+}
+
+function SelectShip(props){
+  if(!props.shipData){
+    return <p>loading</p>
   }
+
+  return(
+    <select name="ship" onChange={(e)=>{props.onChangeShip(e)}}>
+          {props.shipData.map(ship => (
+            <option key={ship.id} value={ship.name}>
+              {ship.name}
+            </option>
+          ))}
+        </select>
+  )
 }
 
 function App() {
-  const {currency,onChangeCurrency} = useSelectCurrency();
-  const {rateData,refetch} = useExchangeRates(currency);
+  const {shipData,refetch} = useExchangeRates();
+  const {ship,onChangeShip} = useSearchShipData();
 
   useEffect(() => {
     if(refetch){
-      refetch();
+      console.log({variables:{name:ship}});
+      refetch({variables:{name:ship}});
     }
-  }, [currency, refetch])
+  }, [refetch, ship])
 
   return (
     <div className="App">
       <div>
-        <div>
-            <select name="currency" onChange={(e)=>onChangeCurrency(e)}>
-                <option value='USD'>USD</option>
-                <option value='AOA'>AOA</option>
-                <option value='JPY'>JPY</option>
-            </select>
-        </div>
-        <ShowRateData rateData={rateData}/>
+        <SelectShip shipData={shipData} onChangeShip={onChangeShip}/>
+        <ShowshipData shipData={shipData}/>
       </div>
     </div>
   );
