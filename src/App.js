@@ -5,20 +5,17 @@ import {
 } from "@apollo/client";
 import {useState,useEffect} from 'react';
 
-const EXCHANGE_RATES = gql`
-query GetExchangeRates($currency: String!) {
-  rates(currency: $currency) {
-    currency
-    rate
-    name
-  }
-}
-`;
-
-let rateData = null;
-let refetcha = null;
-
 function useExchangeRates(selectedCurrency) {
+  const EXCHANGE_RATES = gql`
+  query GetExchangeRates($currency: String!) {
+    rates(currency: $currency) {
+      currency
+      rate
+      name
+    }
+  }
+  `;
+
   const currency = selectedCurrency;
 
   const { loading, error, data, refetch } = useQuery(EXCHANGE_RATES ,{
@@ -29,27 +26,31 @@ function useExchangeRates(selectedCurrency) {
   if (error) return 'error';
 
   console.log("useExchangeRates run");
-  refetcha = refetch;
 
-  return data.rates
+  return {
+    rateData:data.rates,
+    refetch
+  }
 }
 
-function ShowRateData(){
-  console.log(rateData);
+function ShowRateData(props){
+    console.log(props.rateData);
 
-  if (rateData === 'loading'){
-    return(<p>loading</p>);
-  }else if(rateData === 'error'){
-    return(<p>error</p>);
-  }
-
-  return rateData.map(({ currency, rate }) => (
-    <div key={currency}>
-      <p>
-        {currency}: {rate}
-      </p>
-    </div>
-  ));
+    if(!props.rateData){
+      return(<p>no data</p>);
+    }else if (props.rateData === 'loading'){
+      return(<p>loading</p>);
+    }else if(props.rateData === 'error'){
+      return(<p>error</p>);
+    }
+  
+    return props.rateData.map(({ currency, rate }) => (
+      <div key={currency}>
+        <p>
+          {currency}: {rate}
+        </p>
+      </div>
+    ));
 }
 
 function useSelectCurrency() {
@@ -65,13 +66,13 @@ function useSelectCurrency() {
 
 function App() {
   const {currency,onChangeCurrency} = useSelectCurrency();
-  rateData = useExchangeRates(currency);
+  const {rateData,refetch} = useExchangeRates(currency);
 
   useEffect(() => {
-    if(refetcha){
-      refetcha();
+    if(refetch){
+      refetch();
     }
-  }, [currency])
+  }, [currency, refetch])
 
   return (
     <div className="App">
@@ -83,7 +84,7 @@ function App() {
                 <option value='JPY'>JPY</option>
             </select>
         </div>
-        <ShowRateData />
+        <ShowRateData rateData={rateData}/>
       </div>
     </div>
   );
